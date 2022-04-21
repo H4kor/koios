@@ -1,4 +1,9 @@
 defmodule Koios.RetrieverRegistry do
+  @moduledoc """
+  The Koios.RetrieverRegistry module provides a registry of Koios.Retriever instances.
+  A separate Retriever is provided for each domain.
+  """
+
   use GenServer
 
   def start_link(opts) do
