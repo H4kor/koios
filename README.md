@@ -19,3 +19,19 @@ Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_do
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
 be found at <https://hexdocs.pm/scraper>.
 
+
+## Architecture
+
+**RetrieverRegistry** provides **Retriever**s to be used for accessing website data
+
+**Retriever** are domain specific to enforce requests limits per domain.
+
+**Finder** takes an initial URL and searches for domains in a breath-first fashion
+
+**Crawler** takes a URL/Domain and uses the **Retriever** to download all pages in a breath-first fashion
+
+
+```elixir
+Koios.Finder.find_on_page("https://blog.libove.org/", 1, self())
+IEx.Helpers.recompile()
+```

@@ -24,7 +24,8 @@ defmodule Koios.MixProject do
     [
       {:tesla, "~> 1.4"},
       {:floki, "~> 0.32.0"},
-      {:hackney, "~> 1.13"}
+      {:hackney, "~> 1.13"},
+      {:mox, "~> 1.0.1", only: [:test]},
     ]
   end
 end

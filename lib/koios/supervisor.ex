@@ -9,6 +9,7 @@ defmodule Koios.Supervisor do
   def init(:ok) do
     children = [
       {Koios.RetrieverRegistry, name: Koios.RetrieverRegistry},
+      {Task.Supervisor, name: Koios.RetrieverSupervisor, strategy: :one_for_one},
     ]
 
     Supervisor.init(children, strategy: :one_for_one)

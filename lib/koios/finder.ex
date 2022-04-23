@@ -27,19 +27,33 @@ defmodule Koios.Finder do
     URI.merge(URI.parse(base_url), link) |> to_string()
   end
 
-  defp handle_result(result, depth, max_depth, caller, found_pages) do
-    unless Koios.FoundPages.has(found_pages, result) do
-      send(caller, {:found, result})
-      Koios.FoundPages.put(found_pages, result)
+  defp get_domain(url) do
+    URI.parse(url).host
+  end
+
+  defp handle_result(result_url, context = %{
+    depth: depth,
+    max_depth: max_depth,
+    caller: caller,
+    found_pages: found_pages,
+    found_domains: found_domains,
+  }) do
+    unless Koios.FoundItemSet.has?(found_pages, result_url) do
+      domain = get_domain(result_url)
+      unless Koios.FoundItemSet.has?(found_domains, domain) do
+        send(caller, {:found, domain})
+        Koios.FoundItemSet.put(found_domains, domain)
+      end
+      Koios.FoundItemSet.put(found_pages, result_url)
       if depth < max_depth do
         spawn(
-          fn -> scrape_page(result, depth, max_depth, caller, found_pages) end
+          fn -> scrape_page(result_url, %{context | depth: depth+1} ) end
         )
       end
     end
   end
 
-  defp scrape_page(url, depth, max_depth, caller, found_pages) do
+  defp download_page_as_html(url) do
     resp = Koios.RetrieverRegistry.get_retriever(url)
       |> Koios.Retriever.get_page(url)
     case resp do
@@ -48,23 +62,38 @@ defmodule Koios.Finder do
         parser_result = Floki.parse_document(content)
         case parser_result do
           # successfully parsed
-          {:ok, document} ->
-            links_on_page = Enum.map(
-              extract_links_from_document(document),
-              &(a_element_to_link(&1) |> link_to_urls(url))
-            )
-            Enum.each(links_on_page, &(handle_result(&1, depth, max_depth, caller, found_pages)))
-          # any error
-          _ -> nil
+          {:ok, document} -> {:ok, document}
+          # failed to parse
+          {:error, err} -> {:error, err}
         end
+      {:error, err} -> {:error, err}
+    end
+  end
+
+  defp scrape_page(url, context) do
+    # IO.puts("Depth #{depth}/#{max_depth} Scraping #{url}. (Found #{Koios.FoundItemSet.size(found_pages)})")
+    case download_page_as_html(url) do
+      {:ok, document} ->
+        urls_on_page = Enum.map(
+          extract_links_from_document(document),
+          &(a_element_to_link(&1) |> link_to_urls(url))
+        )
+        Enum.each(urls_on_page, &(handle_result(&1, context)))
       # any error
-      _ -> nil
+      {:error, error} -> error
     end
   end
 
   def find_on_page(url, max_depth, caller) do
-    found_pages = Koios.FoundPages.start_link([])
-    scrape_page(url, 0, max_depth, caller, found_pages)
+    {:ok, found_pages} = Koios.FoundItemSet.start_link([])
+    {:ok, found_domains} = Koios.FoundItemSet.start_link([])
+    Task.start_link(fn -> scrape_page(url, %{
+      depth: 0,
+      max_depth: max_depth,
+      caller: caller,
+      found_pages: found_pages,
+      found_domains: found_domains,
+    }) end)
   end
 
   def find_on_page(url, caller) do
