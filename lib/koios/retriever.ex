@@ -19,7 +19,7 @@ defmodule Koios.Retriever do
     @return The response body.
   """
   def get_page(retriever, url) do
-    GenServer.call(retriever, {:get_page, url})
+    GenServer.call(retriever, {:get_page, url}, :infinity)
   end
 
   @impl true

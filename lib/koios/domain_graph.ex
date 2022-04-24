@@ -11,7 +11,7 @@ defmodule Koios.DomainGraph do
 
   def generate_dot_file(url, depth, out_file_name) do
     task = Task.async(fn ->
-      Koios.Finder.find_on_page(url, depth, self())
+      Koios.Finder.start_link({url, depth, self()})
       {:ok, file} = File.open(out_file_name, [:write])
       IO.write(file, "strict graph {\n")
       IO.write(file, "node[shape=point]\n")

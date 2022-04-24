@@ -1,4 +1,4 @@
-defmodule Koios.FoundItemSet do
+defmodule Koios.Set do
   use Agent
 
   def start_link(_opts) do
@@ -11,6 +11,10 @@ defmodule Koios.FoundItemSet do
 
   def put(set, url) do
     Agent.update(set, &MapSet.put(&1, url))
+  end
+
+  def remove(set, url) do
+    Agent.update(set, &MapSet.delete(&1, url))
   end
 
   def size(set) do
