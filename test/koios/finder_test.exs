@@ -13,7 +13,7 @@ defmodule FinderTest do
       end)
 
     Koios.Finder.find_on_page("http://www.example.com", self())
-    assert_receive {:found, "www.example.com"}
+    assert_receive {:found, "www.example.com", %{depth: 0, source: "http://www.example.com", source_domain: "www.example.com"}}
   end
 
   test "find_on_page with depth" do
@@ -26,8 +26,8 @@ defmodule FinderTest do
       end)
 
     Koios.Finder.find_on_page("http://www.example.com", 1, self())
-    assert_receive {:found, "www.example.com"}
-    assert_receive {:found, "foobar.com"}
+    assert_receive {:found, "www.example.com", %{depth: 0, source: "http://www.example.com", source_domain: "www.example.com"}}
+    assert_receive {:found, "foobar.com", %{depth: 1, source: "http://www.example.com/foo.html", source_domain: "www.example.com"}}
   end
 
 end

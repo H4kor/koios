@@ -12,7 +12,9 @@ defmodule Koios.RetrieverRegistry do
 
   @impl true
   def init(:ok) do
-    {:ok, %{}}
+    domains = %{}
+    refs = %{}
+    {:ok, {domains, refs}}
   end
 
   def get_retriever(url) do
@@ -20,17 +22,36 @@ defmodule Koios.RetrieverRegistry do
   end
 
   @impl true
-  def handle_call({:get_retriever, url}, _from, retrievers) do
+  def handle_call({:get_retriever, url}, _from, {domains, refs}) do
     uri = URI.parse(url)
     domain = uri.host
     if domain == nil do
-      {:noreply, retrievers}
+      {:noreply, {domains, refs}}
     end
-    if Map.has_key?(retrievers, domain) do
-      {:reply, Map.get(retrievers, domain), retrievers}
+    if Map.has_key?(domains, domain) do
+      {:reply, Map.get(domains, domain), {domains, refs}}
     else
-      {:ok, new_retriever} = Koios.Retriever.start_link()
-      {:reply, new_retriever, Map.put(retrievers, domain, new_retriever)}
+      {:ok, new_retriever} = DynamicSupervisor.start_child(
+        Koios.RetrieverSupervisor, Koios.Retriever
+      )
+      ref = Process.monitor(new_retriever)
+      refs = Map.put(refs, ref, domain)
+      domains = Map.put(domains, domain, new_retriever)
+      {:reply, new_retriever, {domains, refs}}
     end
+  end
+
+  @impl true
+  def handle_info({:DOWN, ref, :process, _pid, _reason}, {domains, refs}) do
+    {domain, refs} = Map.pop(refs, ref)
+    domains = Map.delete(domains, domain)
+    {:noreply, {domains, refs}}
+  end
+
+  @impl true
+  def handle_info(msg, state) do
+    require Logger
+    Logger.debug("Unexpected message in KV.Registry: #{inspect(msg)}")
+    {:noreply, state}
   end
 end

@@ -37,11 +37,12 @@ defmodule Koios.Finder do
     caller: caller,
     found_pages: found_pages,
     found_domains: found_domains,
+    source: source,
   }) do
     unless Koios.FoundItemSet.has?(found_pages, result_url) do
       domain = get_domain(result_url)
-      unless Koios.FoundItemSet.has?(found_domains, domain) do
-        send(caller, {:found, domain})
+      unless Koios.FoundItemSet.has?(found_domains, domain) || domain == nil do
+        send(caller, {:found, domain, %{source: source, source_domain: get_domain(source), depth: depth}})
         Koios.FoundItemSet.put(found_domains, domain)
       end
       Koios.FoundItemSet.put(found_pages, result_url)
@@ -78,7 +79,7 @@ defmodule Koios.Finder do
           extract_links_from_document(document),
           &(a_element_to_link(&1) |> link_to_urls(url))
         )
-        Enum.each(urls_on_page, &(handle_result(&1, context)))
+        Enum.each(urls_on_page, &(handle_result(&1, %{context | source: url})))
       # any error
       {:error, error} -> error
     end
@@ -93,6 +94,7 @@ defmodule Koios.Finder do
       caller: caller,
       found_pages: found_pages,
       found_domains: found_domains,
+      source: url
     }) end)
   end
 

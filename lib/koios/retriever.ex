@@ -1,10 +1,15 @@
 defmodule Koios.Retriever do
-  @http_client Application.get_env(:koios, :http_client)
-  use Task
+  use GenServer
 
-  @spec start_link :: {:ok, pid}
-  def start_link() do
-    Task.start_link(fn -> loop() end)
+  @http_client Application.get_env(:koios, :http_client)
+
+  def start_link(opts\\[]) do
+    GenServer.start_link(__MODULE__, :ok, opts)
+  end
+
+  @impl true
+  def init(:ok) do
+    {:ok, %{}}
   end
 
   @doc """
@@ -14,22 +19,14 @@ defmodule Koios.Retriever do
     @return The response body.
   """
   def get_page(retriever, url) do
-    send retriever, {:get_page, url, self()}
-    receive do
-      result -> result
-    end
-
+    GenServer.call(retriever, {:get_page, url})
   end
 
-  defp loop() do
-    receive do
-      {:get_page, url, caller} ->
-        send caller, @http_client.get_page(url)
-        Process.sleep(Application.get_env(:koios, :retriever_timeout_ms))
-        loop()
-    # after
-    #   10_000 ->
-    #     nil # TOOD: kill the retriever
-    end
+  @impl true
+  def handle_call({:get_page, url}, from, state) do
+    response = @http_client.get_page(url)
+    GenServer.reply(from, response)
+    Process.sleep(Application.get_env(:koios, :retriever_timeout_ms))
+    {:noreply, state}
   end
 end

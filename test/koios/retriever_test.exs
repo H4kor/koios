@@ -1,8 +1,9 @@
 defmodule Koios.RetrieverTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
   doctest Koios.Retriever
 
   import Mox
+  setup :set_mox_from_context
   setup :verify_on_exit!
 
   setup do
