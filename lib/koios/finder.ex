@@ -82,8 +82,7 @@ defmodule Koios.Finder do
     end
   end
 
-  defp scrape_page(url, depth, context = %{finder: finder}) do
-    # IO.puts("Depth #{depth}/#{max_depth} Scraping #{url}. (Found #{Koios.Set.size(found_pages)})")
+  defp scrape_page(url, depth, %{finder: finder}) do
     case download_page_as_html(url) do
       {:ok, document} ->
         urls_on_page = Enum.map(
@@ -93,7 +92,6 @@ defmodule Koios.Finder do
         Enum.each(
           urls_on_page,
           &GenServer.cast(finder, {:new_url, &1, depth, url})
-          # &handle_result(&1, depth, %{context | source: url})
         )
       # any error
       {:error, error} -> error
@@ -119,15 +117,14 @@ defmodule Koios.Finder do
   end
 
   @impl true
-  def handle_info({ref, result}, context = %{open_tasks: open_tasks}) do
-    # IO.puts("Task #{inspect ref} finished with result #{inspect result}")
+  def handle_info({ref, _result}, context = %{open_tasks: open_tasks}) do
     Koios.Set.remove(open_tasks, ref)
     schedule()
     {:noreply, context}
   end
 
-  def handle_info({:DOWN, ref, _, _, reason}, context = %{open_tasks: open_tasks}) do
-    # IO.puts("Task #{inspect ref} failed with reason #{inspect reason}")
+  @impl true
+  def handle_info({:DOWN, ref, _, _, _reason}, context = %{open_tasks: open_tasks}) do
     Koios.Set.remove(open_tasks, ref)
     schedule()
     {:noreply, context}
