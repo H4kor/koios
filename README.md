@@ -34,7 +34,7 @@ be found at <https://hexdocs.pm/scraper>.
 ```elixir
 Koios.Finder.find_on_page("https://blog.libove.org/", 1, self())
 
-Koios.DomainGraph.generate_dot_file("https://blog.libove.org", 1, "test.dot")
+Koios.DomainGraph.generate_dot_file("https://blog.libove.org", 50, "test.dot")
 
 IEx.Helpers.recompile()
 ```

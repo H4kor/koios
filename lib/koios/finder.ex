@@ -20,11 +20,20 @@ defmodule Koios.Finder do
   end
 
   defp extract_links_from_document(document) do
-    Floki.find(document, "a")
+    Enum.filter(
+      Enum.map(Floki.find(document, "a"), &a_element_to_link(&1)),
+      fn link -> link != nil end
+    )
   end
 
-  defp link_to_urls(link, base_url) do
-    URI.merge(URI.parse(base_url), link) |> to_string()
+  defp link_to_url(link, base_url) do
+    try do
+      URI.merge(URI.parse(base_url), link) |> to_string()
+    rescue
+      _ ->
+        IO.puts("Failed to join on #{base_url} and #{link}")
+        nil
+    end
   end
 
   defp get_domain(url) do
@@ -77,7 +86,7 @@ defmodule Koios.Finder do
       {:ok, document} ->
         urls_on_page = Enum.map(
           extract_links_from_document(document),
-          &(a_element_to_link(&1) |> link_to_urls(url))
+          &link_to_url(&1, url)
         )
         Enum.each(urls_on_page, &(handle_result(&1, %{context | source: url})))
       # any error

@@ -6,8 +6,11 @@ defmodule Koios.TeslaHttpClient do
 
   @spec get_page(String.t) :: {:ok, String.t} | {:error, any}
   def get_page(url) do
-    request = get(url)
-    case request do
+    try do
+      get(url)
+    rescue
+      e -> {:error, e}
+    else
       {:ok, response} ->
         if ( response.status >= 200 && response.status < 300 )do
           {:ok, response.body}
