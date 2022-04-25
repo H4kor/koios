@@ -88,19 +88,58 @@ defmodule CrawlerTest do
     assert_receive {:done}
   end
 
+  test "start_link with connection error" do
+    Koios.MockHttpClient
+    |> expect(:get_page, fn _url ->
+        {:error, :test_error}
+      end)
 
-  # test "start_link with depth" do
-  #   Koios.MockHttpClient
-  #   |> expect(:get_page, fn "http://www.example.com" ->
-  #       {:ok, "<html><body><a href=\"foo.html\">Hello</a>, world!</body></html>"}
-  #     end)
-  #   |> expect(:get_page, fn "http://www.example.com/foo.html" ->
-  #       {:ok, "<html><body><a href=\"https://foobar.com\">Hello</a>, world!</body></html>"}
-  #     end)
+    Koios.Crawler.start_link({"http://www.example.com", 0, 1, self()})
+    assert_receive {:done}
+    refute_received {:found, _, _}
+  end
 
-  #   Koios.Crawler.start_link({"http://www.example.com", 1, self()})
-  #   assert_receive {:found, "www.example.com", %{depth: 0, source: "http://www.example.com", source_domain: "www.example.com"}}
-  #   assert_receive {:found, "foobar.com", %{depth: 1, source: "http://www.example.com/foo.html", source_domain: "www.example.com"}}
-  # end
+  test "start_link page only crawled once" do
+    Koios.MockHttpClient
+    |> expect(:get_page, fn "http://www.example.com" ->
+        {:ok, "
+        <html><body>
+        <a href=\"foo.html\">Hello</a>
+        <a href=\"bar.html\">Hello</a>
+        </body></html>"}
+      end)
+    |> expect(:get_page, fn "http://www.example.com/foo.html" ->
+        {:ok, "<html><body></body></html>"}
+      end)
+    |> expect(:get_page, fn "http://www.example.com/bar.html" ->
+        {:ok, "
+        <html><body>
+        <a href=\"foo.html\">Hello</a>
+        </body></html>"}
+      end)
+
+    Koios.Crawler.start_link({"http://www.example.com", 50, 1, self()})
+    assert_receive {
+      :found,
+      {_, _},
+      %{depth: 0, url: "http://www.example.com"}
+    }
+    assert_receive {
+      :found,
+      {_, _},
+      %{depth: 1, url: "http://www.example.com/foo.html"}
+    }
+    assert_receive {
+      :found,
+      {_, _},
+      %{depth: 1, url: "http://www.example.com/bar.html"}
+    }
+    refute_received {
+      :found,
+      {_, _},
+      %{depth: 2, url: "http://www.example.com/foo.html"}
+    }
+    assert_receive {:done}
+  end
 
 end
