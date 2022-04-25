@@ -11,7 +11,7 @@ defmodule Koios.Crawler do
     {:ok, open_tasks} = Koios.Set.start_link([])
     {:ok, open_urls} = Koios.Queue.start_link([])
 
-    Koios.Queue.push(open_urls, %{url: start_url, depth: 0})
+    Koios.Queue.push(open_urls, %{url: start_url, depth: 0, source: nil})
 
     schedule_work()
 
@@ -39,29 +39,29 @@ defmodule Koios.Crawler do
     # create new tasks from open_urls
     if Koios.Set.size(open_tasks) < max_tasks do
       case Koios.Queue.pop(open_urls) do
-        %{url: url, depth: depth} ->
+        %{url: url, depth: depth, source: source} ->
           new_task = Task.async(
-            fn -> crawl_page(url, depth, context) end
+            fn -> crawl_page(url, depth, source, context) end
           )
           Koios.Set.put(open_tasks, new_task.ref)
           schedule_work()
+          {:noreply, context}
         nil ->
           if Koios.Set.size(open_tasks) == 0 do
             # no more urls, no more tasks -> we are done
             send(caller, {:done})
-            {:stop, :done, context}
+            {:noreply, context, :hibernate}
           else
             {:noreply, context}
           end
       end
+    else
+      {:noreply, context}
     end
-    {:noreply, context}
   end
 
   @impl true
-  def handle_info({ref, _result}, context = %{open_tasks: open_tasks}) do
-    Koios.Set.remove(open_tasks, ref)
-    schedule_work()
+  def handle_info({_ref, _result}, context) do
     {:noreply, context}
   end
 
@@ -109,11 +109,11 @@ defmodule Koios.Crawler do
     end
   end
 
-  defp crawl_page(url, depth, %{caller: caller, crawler: crawler}) do
+  defp crawl_page(url, depth, source, %{caller: caller, crawler: crawler}) do
     case download_page(url) do
       {:ok, {raw, document}} ->
         # send data to caller
-        send(caller, {:found, {raw, document}, %{url: url, depth: depth}})
+        send(caller, {:found, {raw, document}, %{url: url, depth: depth, source: source}})
 
         # crawl further
         urls_on_page = Enum.map(

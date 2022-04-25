@@ -16,7 +16,7 @@ defmodule CrawlerTest do
     assert_receive {
       :found,
       {_, _},
-      %{depth: 0, url: "http://www.example.com"}
+      %{depth: 0, url: "http://www.example.com", source: nil}
     }
     assert_receive {:done}
   end
@@ -34,12 +34,12 @@ defmodule CrawlerTest do
     assert_receive {
       :found,
       {_, _},
-      %{depth: 0, url: "http://www.example.com"}
+      %{depth: 0, url: "http://www.example.com", source: nil}
     }
     assert_receive {
       :found,
       {_, _},
-      %{depth: 1, url: "http://www.example.com/foo.html"}
+      %{depth: 1, url: "http://www.example.com/foo.html", source: "http://www.example.com"}
     }
     assert_receive {:done}
   end
@@ -122,22 +122,22 @@ defmodule CrawlerTest do
     assert_receive {
       :found,
       {_, _},
-      %{depth: 0, url: "http://www.example.com"}
+      %{depth: 0, url: "http://www.example.com", source: nil}
     }
     assert_receive {
       :found,
       {_, _},
-      %{depth: 1, url: "http://www.example.com/foo.html"}
+      %{depth: 1, url: "http://www.example.com/foo.html", source: "http://www.example.com"}
     }
     assert_receive {
       :found,
       {_, _},
-      %{depth: 1, url: "http://www.example.com/bar.html"}
+      %{depth: 1, url: "http://www.example.com/bar.html", source: "http://www.example.com"}
     }
     refute_received {
       :found,
       {_, _},
-      %{depth: 2, url: "http://www.example.com/foo.html"}
+      %{depth: 2, url: "http://www.example.com/foo.html", source: "http://www.example.com/bar.html"}
     }
     assert_receive {:done}
   end
