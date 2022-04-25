@@ -1,5 +1,8 @@
 defmodule Koios.Crawler do
   use GenServer
+  alias Koios.CrawlRequest
+  alias Koios.Queue
+  alias Koios.Set
 
   def start_link(config, opts\\[]) do
     GenServer.start_link(__MODULE__, config, opts)
@@ -7,11 +10,11 @@ defmodule Koios.Crawler do
 
   @impl true
   def init({start_url, max_depth, max_tasks, caller}) do
-    {:ok, visited_pages} = Koios.Set.start_link([])
-    {:ok, open_tasks} = Koios.Set.start_link([])
-    {:ok, open_urls} = Koios.Queue.start_link([])
+    {:ok, visited_pages} = Set.start_link([])
+    {:ok, open_tasks} = Set.start_link([])
+    {:ok, open_urls} = Queue.start_link([])
 
-    Koios.Queue.push(open_urls, %{url: start_url, depth: 0, source: nil})
+    Queue.push(open_urls, %CrawlRequest{url: start_url})
 
     schedule_work()
 
@@ -37,17 +40,17 @@ defmodule Koios.Crawler do
     }
   ) do
     # create new tasks from open_urls
-    if Koios.Set.size(open_tasks) < max_tasks do
-      case Koios.Queue.pop(open_urls) do
+    if Set.size(open_tasks) < max_tasks do
+      case Queue.pop(open_urls) do
         %{url: url, depth: depth, source: source} ->
           new_task = Task.async(
             fn -> crawl_page(url, depth, source, context) end
           )
-          Koios.Set.put(open_tasks, new_task.ref)
+          Set.put(open_tasks, new_task.ref)
           schedule_work()
           {:noreply, context}
         nil ->
-          if Koios.Set.size(open_tasks) == 0 do
+          if Set.size(open_tasks) == 0 do
             # no more urls, no more tasks -> we are done
             send(caller, {:done})
             {:noreply, context, :hibernate}
@@ -67,21 +70,24 @@ defmodule Koios.Crawler do
 
   @impl true
   def handle_info({:DOWN, ref, _, _, _reason}, context = %{open_tasks: open_tasks}) do
-    Koios.Set.remove(open_tasks, ref)
+    Set.remove(open_tasks, ref)
     schedule_work()
     {:noreply, context}
   end
 
   @impl true
-  def handle_cast({:new_url, result_url, depth, source}, context = %{
-    max_depth: max_depth,
-    visited_pages: visited_pages,
-    open_urls: open_urls,
-  }) do
-    unless result_url == nil or Koios.Set.has?(visited_pages, result_url) do
+  def handle_cast(
+    {:new_url, %CrawlRequest{url: url, depth: depth, source: source}},
+    context = %{
+      max_depth: max_depth,
+      visited_pages: visited_pages,
+      open_urls: open_urls,
+    }
+  ) do
+    unless url == nil or Set.has?(visited_pages, url) do
       if depth < max_depth do
-        Koios.Set.put(visited_pages, result_url)
-        Koios.Queue.push(open_urls, %{url: result_url, depth: depth + 1, source: source})
+        Set.put(visited_pages, url)
+        Queue.push(open_urls, %{url: url, depth: depth + 1, source: source})
         schedule_work()
       end
     end
@@ -122,7 +128,13 @@ defmodule Koios.Crawler do
         )
         Enum.each(
           urls_on_page,
-          &GenServer.cast(crawler, {:new_url, &1, depth, url})
+          &GenServer.cast(
+            crawler,
+            {
+              :new_url,
+              %CrawlRequest{url: &1, depth: depth, source: url}
+            }
+          )
         )
       # any error
       {:error, error} -> error

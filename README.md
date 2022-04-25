@@ -32,7 +32,7 @@ be found at <https://hexdocs.pm/scraper>.
 
 
 ```elixir
-Koios.Finder.start_link("https://blog.libove.org/", 3, self())
+Koios.Crawler.start_link({"https://blog.libove.org/", 0, 10, self()})
 
 Koios.DomainGraph.generate_dot_file("https://blog.libove.org", 50, "test.dot")
 

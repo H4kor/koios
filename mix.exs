@@ -7,7 +7,13 @@ defmodule Koios.MixProject do
       version: "0.1.0",
       elixir: "~> 1.13",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+
+      name: "Koios",
+      docs: [
+        main: "Koios",
+        extras: ["README.md"]
+      ]
     ]
   end
 
@@ -25,7 +31,10 @@ defmodule Koios.MixProject do
       {:tesla, "~> 1.4"},
       {:floki, "~> 0.32.0"},
       {:hackney, "~> 1.13"},
-      {:mox, "~> 1.0.1", only: [:test]},
+      # test deps
+      {:mox, "~> 1.0.1", only: [:test], runtime: false},
+      # dev deps
+      {:ex_doc, "~> 0.27", only: :dev, runtime: false},
     ]
   end
 end
