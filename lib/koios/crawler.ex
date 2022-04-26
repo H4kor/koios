@@ -4,6 +4,8 @@ defmodule Koios.Crawler do
   alias Koios.Queue
   alias Koios.Set
 
+  import Koios.Util.UrlUtil
+
   def start_link(config, opts\\[]) do
     GenServer.start_link(__MODULE__, config, opts)
   end
@@ -127,7 +129,7 @@ defmodule Koios.Crawler do
         # crawl further
         urls_on_page = Enum.map(
           extract_links_from_document(document),
-          &link_to_url(&1, url)
+          &link_to_url(url, &1)
         )
         Enum.each(
           urls_on_page,
@@ -143,38 +145,4 @@ defmodule Koios.Crawler do
       {:error, error} -> error
     end
   end
-
-  defp a_element_to_link(a_element) do
-    if Kernel.tuple_size(a_element) < 2 do
-      nil
-    else
-      hrefs = Enum.filter(
-        elem(a_element,1),
-        fn attr -> elem(attr, 0) == "href" end
-      )
-      if Enum.count(hrefs) < 1 do
-        nil
-      else
-        elem(Enum.at(hrefs, 0, {"href", nil}), 1)
-      end
-    end
-  end
-
-  defp extract_links_from_document(document) do
-    Enum.filter(
-      Enum.map(Floki.find(document, "a"), &a_element_to_link(&1)),
-      fn link -> link != nil end
-    )
-  end
-
-  defp link_to_url(link, base_url) do
-    try do
-      URI.merge(URI.parse(base_url), link) |> to_string()
-    rescue
-      _ ->
-        IO.puts("Failed to join on #{base_url} and #{link}")
-        nil
-    end
-  end
-
 end
