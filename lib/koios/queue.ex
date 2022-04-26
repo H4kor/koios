@@ -16,7 +16,7 @@ defmodule Koios.Queue do
     {:reply, last, remain}
   end
 
-  @imple true
+  @impl true
   def handle_call({:size}, _from, list) do
     {:reply, Enum.count(list), list}
   end

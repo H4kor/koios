@@ -6,4 +6,8 @@ defmodule Koios.CrawlRequest do
     depth: integer(),
     source: String.t() | nil,
   }
+
+  def follow(url, prev) do
+    %Koios.CrawlRequest{url: url, depth: prev.depth + 1, source: prev.url}
+  end
 end

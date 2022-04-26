@@ -42,9 +42,9 @@ defmodule Koios.Crawler do
     # create new tasks from open_urls
     if Set.size(open_tasks) < max_tasks do
       case Queue.pop(open_urls) do
-        %{url: url, depth: depth, source: source} ->
+        req when is_struct(req, CrawlRequest) ->
           new_task = Task.async(
-            fn -> crawl_page(url, depth, source, context) end
+            fn -> crawl_page(req, context) end
           )
           Set.put(open_tasks, new_task.ref)
           schedule_work()
@@ -85,9 +85,9 @@ defmodule Koios.Crawler do
     }
   ) do
     unless url == nil or Set.has?(visited_pages, url) do
-      if depth < max_depth do
+      if depth <= max_depth do
         Set.put(visited_pages, url)
-        Queue.push(open_urls, %{url: url, depth: depth + 1, source: source})
+        Queue.push(open_urls, %CrawlRequest{url: url, depth: depth, source: source})
         schedule_work()
       end
     end
@@ -115,11 +115,14 @@ defmodule Koios.Crawler do
     end
   end
 
-  defp crawl_page(url, depth, source, %{caller: caller, crawler: crawler}) do
+  defp crawl_page(
+    crawl_request = %CrawlRequest{url: url},
+    %{caller: caller, crawler: crawler}
+  ) do
     case download_page(url) do
       {:ok, {raw, document}} ->
         # send data to caller
-        send(caller, {:found, {raw, document}, %{url: url, depth: depth, source: source}})
+        send(caller, {:found, {raw, document}, crawl_request})
 
         # crawl further
         urls_on_page = Enum.map(
@@ -132,7 +135,7 @@ defmodule Koios.Crawler do
             crawler,
             {
               :new_url,
-              %CrawlRequest{url: &1, depth: depth, source: url}
+              CrawlRequest.follow(&1, crawl_request),
             }
           )
         )

@@ -32,7 +32,7 @@ defmodule Koios.MixProject do
       {:floki, "~> 0.32.0"},
       {:hackney, "~> 1.13"},
       # test deps
-      {:mox, "~> 1.0.1", only: [:test], runtime: false},
+      {:mox, "~> 1.0.1", only: [:test]},
       # dev deps
       {:ex_doc, "~> 0.27", only: :dev, runtime: false},
     ]
