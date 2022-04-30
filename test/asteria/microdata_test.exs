@@ -104,4 +104,88 @@ defmodule Asteria.MicrodataTest do
       }
     ]
   end
+
+  test "extract with multiple microdata object" do
+    html = """
+    <div>
+      <div itemscope itemtype ="https://schema.org/Movie">
+        <h1 itemprop="name">Avatar</h1>
+        <span>Director: <span itemprop="director">James Cameron</span> (born August 16, 1954)</span>
+        <span itemprop="genre">Science fiction</span>
+        <a href="../movies/avatar-theatrical-trailer.html" itemprop="trailer">Trailer</a>
+      </div>
+      <div itemscope itemtype ="https://schema.org/Movie">
+        <h1 itemprop="name">Avatar</h1>
+        <span>Director: <span itemprop="director">James Cameron</span> (born August 16, 1954)</span>
+        <span itemprop="genre">Science fiction</span>
+        <a href="../movies/avatar-theatrical-trailer.html" itemprop="trailer">Trailer</a>
+      </div>
+    </div>
+    """
+    result =  Asteria.Microdata.extract(Floki.parse_document!(html))
+    assert result == [
+      %{
+        "@context" => "https://schema.org",
+        "@type" => "Movie",
+        "name" => "Avatar",
+        "director" => "James Cameron",
+        "genre" => "Science fiction",
+        "trailer" => "../movies/avatar-theatrical-trailer.html",
+      },
+      %{
+        "@context" => "https://schema.org",
+        "@type" => "Movie",
+        "name" => "Avatar",
+        "director" => "James Cameron",
+        "genre" => "Science fiction",
+        "trailer" => "../movies/avatar-theatrical-trailer.html",
+      }
+    ]
+  end
+
+
+  test "extract with multiple microdata object and non-data objects" do
+    html = """
+    <div>
+      <div>
+        <h1>Title</h1>
+      </div>
+      <div itemscope itemtype ="https://schema.org/Movie">
+        <h1 itemprop="name">Avatar</h1>
+        <span>Director: <span itemprop="director">James Cameron</span> (born August 16, 1954)</span>
+        <span itemprop="genre">Science fiction</span>
+        <a href="../movies/avatar-theatrical-trailer.html" itemprop="trailer">Trailer</a>
+      </div>
+      <div>
+        Hello World!
+      </div>
+      <div itemscope itemtype ="https://schema.org/Movie">
+        <h1 itemprop="name">Avatar</h1>
+        <span>Director: <span itemprop="director">James Cameron</span> (born August 16, 1954)</span>
+        <span itemprop="genre">Science fiction</span>
+        <a href="../movies/avatar-theatrical-trailer.html" itemprop="trailer">Trailer</a>
+      </div>
+    </div>
+    """
+    result =  Asteria.Microdata.extract(Floki.parse_document!(html))
+    assert result == [
+      %{
+        "@context" => "https://schema.org",
+        "@type" => "Movie",
+        "name" => "Avatar",
+        "director" => "James Cameron",
+        "genre" => "Science fiction",
+        "trailer" => "../movies/avatar-theatrical-trailer.html",
+      },
+      %{
+        "@context" => "https://schema.org",
+        "@type" => "Movie",
+        "name" => "Avatar",
+        "director" => "James Cameron",
+        "genre" => "Science fiction",
+        "trailer" => "../movies/avatar-theatrical-trailer.html",
+      }
+    ]
+  end
+
 end

@@ -69,17 +69,28 @@ defmodule Asteria.Microdata do
     end
   end
 
-  defp find_main_itempscopes(document) do
-    case Floki.attribute(document, "itemscope") do
-      ["itemscope"] -> document
-      _ -> case Floki.children(document) do
-        nil -> nil
-        children ->
-          children
-            |> Enum.map(&find_main_itempscopes(&1))
-            |> List.flatten
-            |> Enum.filter(& !is_nil(&1))
-        end
+  def find_main_itempscopes([]) do
+    []
+  end
+
+  def find_main_itempscopes([head]) do
+    find_main_itempscopes(head)
+  end
+
+  def find_main_itempscopes([head | tail]) do
+    case head do
+      nil -> find_main_itempscopes(tail)
+      _ -> find_main_itempscopes(head) ++ find_main_itempscopes(tail)
+    end
+  end
+
+  def find_main_itempscopes(node) when is_tuple(node) do
+    case Floki.attribute(node, "itemscope") do
+      ["itemscope"] -> [node]
+      _ -> case Floki.children(node, include_text: false) do
+        nil -> []
+        children -> find_main_itempscopes(children)
+      end
     end
   end
 
