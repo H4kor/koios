@@ -35,6 +35,10 @@ defmodule Koios.Coordinator do
     {:noreply, state}
   end
 
+  def handle_info({:done}, state) do
+    {:noreply, state}
+  end
+
   def add_scraper(coordinator, scraper, pid) do
     GenServer.cast(coordinator, {:add_scraper, scraper, pid})
   end
