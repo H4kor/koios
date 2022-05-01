@@ -69,22 +69,22 @@ defmodule Asteria.Microdata do
     end
   end
 
-  def find_main_itempscopes([]) do
+  defp find_main_itempscopes([]) do
     []
   end
 
-  def find_main_itempscopes([head]) do
+  defp find_main_itempscopes([head]) do
     find_main_itempscopes(head)
   end
 
-  def find_main_itempscopes([head | tail]) do
+  defp find_main_itempscopes([head | tail]) do
     case head do
       nil -> find_main_itempscopes(tail)
       _ -> find_main_itempscopes(head) ++ find_main_itempscopes(tail)
     end
   end
 
-  def find_main_itempscopes(node) when is_tuple(node) do
+  defp find_main_itempscopes(node) when is_tuple(node) do
     case Floki.attribute(node, "itemscope") do
       ["itemscope"] -> [node]
       _ -> case Floki.children(node, include_text: false) do
