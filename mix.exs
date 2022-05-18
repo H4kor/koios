@@ -31,7 +31,6 @@ defmodule Koios.MixProject do
       {:tesla, "~> 1.4"},
       {:floki, "~> 0.32.0"},
       {:hackney, "~> 1.13"},
-      {:jason, "~> 1.3"},
       # test deps
       {:mox, "~> 1.0.1", only: [:test]},
       # dev deps
