@@ -14,20 +14,6 @@ defmodule Koios.Supervisor do
       Koios.CrawlerSupervisor,
       {Task.Supervisor, name: Koios.ScraperTaskSupervisor},
     ]
-
-    # {:ok, scraper} = DynamicSupervisor.start_child(
-    #   Koios.ScraperSupervisor,
-    #   Koios.Scraper.SchemaScraper.child_spec(:ok)
-    # )
-    # Koios.Coordinator.add_scraper(Koios.Coordinator, Koios.Scraper.SchemaScraper, scraper)
-
-    # DynamicSupervisor.start_child(
-    #   Koios.CrawlerSupervisor,
-    #   Koios.Crawler.child_spec({"https://blog.libove.org/", 5, 1000, Koios.Coordinator})
-    # )
-
-
-
     Supervisor.init(children, strategy: :one_for_all)
   end
 end

@@ -1,16 +1,18 @@
-# Scraper
+# koios
+
+This is not fit for any usage, at the moment. Don't even think about adding this to your project, it was written by a fool without prior knowledge of Elixir.g
 
 **TODO: Add description**
 
 ## Installation
 
 If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `scraper` to your list of dependencies in `mix.exs`:
+by adding `koios` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
   [
-    {:scraper, "~> 0.1.0"}
+    {:koios, "~> 0.1.0"}
   ]
 end
 ```
