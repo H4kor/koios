@@ -1,6 +1,7 @@
 # koios
 
-This is not fit for any usage, at the moment. Don't even think about adding this to your project, it was written by a fool without prior knowledge of Elixir.g
+This is not fit for any usage at the moment.
+Don't even think about adding this to your project, it was written by a fool without prior knowledge of Elixir.
 
 **TODO: Add description**
 
