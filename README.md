@@ -30,6 +30,10 @@ be found at <https://hexdocs.pm/scraper>.
 
 **Crawler** takes a URL/Domain and uses the **Retriever** to download all pages in a breath-first fashion
 
+**Coordinator** can have multiple crawlers sending data to them. Have multiple scrapers processing the data.
+
+**Scraper** retrieve data (html) and process it in arbitrary ways.
+
 
 ```elixir
 Koios.Crawler.start_link({"https://blog.libove.org/", 0, 10, self()})
@@ -37,4 +41,9 @@ Koios.Crawler.start_link({"https://blog.libove.org/", 0, 10, self()})
 Koios.DomainGraph.generate_dot_file("https://blog.libove.org", 50, "test.dot")
 
 IEx.Helpers.recompile()
+
+
+Koios.add_scraper(Koios.Scraper.SchemaScraper, nil)
+Koios.start_crawler(%Koios.CrawlerSpec{url: "https://blog.libove.org", max_depth: 4, max_tasks: 400})
+
 ```

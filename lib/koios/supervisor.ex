@@ -12,7 +12,7 @@ defmodule Koios.Supervisor do
       {DynamicSupervisor, name: Koios.RetrieverSupervisor, strategy: :one_for_one},
       {Koios.Coordinator, name: Koios.Coordinator},
       Koios.CrawlerSupervisor,
-      Koios.ScraperSupervisor,
+      {Task.Supervisor, name: Koios.ScraperTaskSupervisor},
     ]
 
     # {:ok, scraper} = DynamicSupervisor.start_child(

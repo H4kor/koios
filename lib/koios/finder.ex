@@ -39,8 +39,8 @@ defmodule Koios.Finder do
   @impl true
   def init({url, max_depth, caller}) do
     {:ok, found_domains} = Koios.Set.start_link([])
-    {:ok, crawler} = Koios.Crawler.start_link({
-      url, max_depth, 100, self()
+    {:ok, crawler} = Koios.Crawler.start_link(%Koios.CrawlerSpec{
+      url: url, max_depth: max_depth, max_tasks: 100, caller: self()
     })
 
     {:ok, %{

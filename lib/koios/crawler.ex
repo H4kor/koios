@@ -6,24 +6,25 @@ defmodule Koios.Crawler do
 
   import Koios.Util.UrlUtil
 
+  @spec start_link(Koios.CrawlerSpec.t()) :: {:ok, pid}
   def start_link(config, opts\\[]) do
     GenServer.start_link(__MODULE__, config, opts)
   end
 
   @impl true
-  def init({start_url, max_depth, max_tasks, caller}) do
+  def init(config) do
     {:ok, visited_pages} = Set.start_link([])
     {:ok, open_tasks} = Set.start_link([])
     {:ok, open_urls} = Queue.start_link([])
 
-    Queue.push(open_urls, %CrawlRequest{url: start_url})
+    Queue.push(open_urls, %CrawlRequest{url: config.url})
 
     schedule_work()
 
     {:ok, %{
-      max_tasks: max_tasks,
-      max_depth: max_depth,
-      caller: caller,
+      max_tasks: config.max_tasks,
+      max_depth: config.max_depth,
+      caller: config.caller,
       visited_pages: visited_pages,
       open_tasks: open_tasks,
       open_urls: open_urls,

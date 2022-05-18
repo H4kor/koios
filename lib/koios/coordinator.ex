@@ -17,10 +17,10 @@ defmodule Koios.Coordinator do
   end
 
   @impl true
-  def handle_cast({:add_scraper, scraper, pid}, state = %{scrapers: scrapers}) do
+  def handle_cast({:add_scraper, scraper, config}, state = %{scrapers: scrapers}) do
     {:noreply, %{
       state
-      | scrapers: (scrapers ++ [{scraper, pid}])
+      | scrapers: (scrapers ++ [{scraper, config}])
     }}
   end
 
@@ -31,7 +31,10 @@ defmodule Koios.Coordinator do
 
   @impl true
   def handle_info({:found, body, req}, state = %{scrapers: scrapers}) do
-    Enum.each(scrapers, fn {scraper, pid} -> scraper.scrape(pid, body, req) end)
+    Enum.each(scrapers, fn {scraper, config} -> Task.Supervisor.start_child(
+      Koios.ScraperTaskSupervisor,
+      fn -> scraper.scrape(config, body, req) end
+    ) end )
     {:noreply, state}
   end
 
@@ -39,8 +42,8 @@ defmodule Koios.Coordinator do
     {:noreply, state}
   end
 
-  def add_scraper(coordinator, scraper, pid) do
-    GenServer.cast(coordinator, {:add_scraper, scraper, pid})
+  def add_scraper(coordinator, scraper, config) do
+    GenServer.cast(coordinator, {:add_scraper, scraper, config})
   end
 
   def get_scrapers(coordinator) do

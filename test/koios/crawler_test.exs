@@ -12,7 +12,9 @@ defmodule CrawlerTest do
         {:ok, "<html><body><a href=\"foo.html\">Hello</a>, world!</body></html>"}
       end)
 
-    Koios.Crawler.start_link({"http://www.example.com", 0, 1, self()})
+    Koios.Crawler.start_link(%Koios.CrawlerSpec{
+      url: "http://www.example.com", max_depth: 0, max_tasks: 1, caller: self()
+    })
     assert_receive {
       :found,
       {_, _},
@@ -30,7 +32,9 @@ defmodule CrawlerTest do
         {:ok, "<html><body><a href=\"https://foobar.com\">Hello</a>, world!</body></html>"}
       end)
 
-    Koios.Crawler.start_link({"http://www.example.com", 1, 1, self()})
+    Koios.Crawler.start_link(%Koios.CrawlerSpec{
+      url: "http://www.example.com", max_depth: 1, max_tasks: 1, caller: self()
+    })
     assert_receive {
       :found,
       {_, _},
@@ -64,7 +68,9 @@ defmodule CrawlerTest do
         {:ok, "<html><body>Foo</body></html>"}
       end)
 
-    Koios.Crawler.start_link({"http://www.example.com", 1, 1, self()})
+    Koios.Crawler.start_link(%Koios.CrawlerSpec{
+      url: "http://www.example.com", max_depth: 1, max_tasks: 1, caller: self()
+    })
     assert_receive {
       :found,
       {_, _},
@@ -94,7 +100,9 @@ defmodule CrawlerTest do
         {:error, :test_error}
       end)
 
-    Koios.Crawler.start_link({"http://www.example.com", 0, 1, self()})
+    Koios.Crawler.start_link(%Koios.CrawlerSpec{
+      url: "http://www.example.com", max_depth: 0, max_tasks: 1, caller: self()
+    })
     assert_receive {:done}
     refute_received {:found, _, _}
   end
@@ -118,7 +126,9 @@ defmodule CrawlerTest do
         </body></html>"}
       end)
 
-    Koios.Crawler.start_link({"http://www.example.com", 50, 1, self()})
+    Koios.Crawler.start_link(%Koios.CrawlerSpec{
+      url: "http://www.example.com", max_depth: 50, max_tasks: 1, caller: self()
+    })
     assert_receive {
       :found,
       {_, _},
