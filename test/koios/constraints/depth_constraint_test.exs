@@ -2,7 +2,7 @@ defmodule Koios.DepthConstraintTest do
   use ExUnit.Case, async: false
   doctest Koios.DepthConstraint
 
-  test "test valid" do
+  test "depth" do
     assert(:true == Koios.DepthConstraint.valid?(
       1, %Koios.CrawlRequest{url: "example.com", depth: 0})
     )
