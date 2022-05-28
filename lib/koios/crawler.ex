@@ -23,12 +23,12 @@ defmodule Koios.Crawler do
 
     {:ok, %{
       max_tasks: config.max_tasks,
-      max_depth: config.max_depth,
       caller: config.caller,
       visited_pages: visited_pages,
       open_tasks: open_tasks,
       open_urls: open_urls,
       crawler: self(),
+      constraints: config.constraints,
     }}
   end
 
@@ -80,21 +80,27 @@ defmodule Koios.Crawler do
 
   @impl true
   def handle_cast(
-    {:new_url, %CrawlRequest{url: url, depth: depth, source: source}},
+    {:new_url, req = %CrawlRequest{url: url, depth: depth, source: source}},
     context = %{
-      max_depth: max_depth,
       visited_pages: visited_pages,
       open_urls: open_urls,
+      constraints: constraints,
     }
   ) do
     unless url == nil or Set.has?(visited_pages, url) do
-      if depth <= max_depth do
-        Set.put(visited_pages, url)
-        Queue.push(open_urls, %CrawlRequest{url: url, depth: depth, source: source})
+      Set.put(visited_pages, url)
+      new_req = %CrawlRequest{url: url, depth: depth, source: source}
+      # TODO: add constraints
+      if Enum.all?(Enum.map(constraints, &(check_constraint(&1, new_req)))) do
+        Queue.push(open_urls, new_req)
         schedule_work()
       end
     end
     {:noreply, context}
+  end
+
+  defp check_constraint({constraint, params}, req) do
+    constraint.valid?(params, req)
   end
 
   defp schedule_work() do

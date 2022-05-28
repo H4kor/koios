@@ -40,8 +40,8 @@ defmodule Koios.Finder do
   def init({url, max_depth, caller}) do
     {:ok, found_domains} = Koios.Set.start_link([])
     {:ok, crawler} = Koios.Crawler.start_link(%Koios.CrawlerSpec{
-      url: url, max_depth: max_depth, max_tasks: 100, caller: self()
-    })
+      url: url, max_tasks: 100, caller: self()
+    } |> Koios.add_constraint(Koios.DepthConstraint, max_depth))
 
     {:ok, %{
       caller: caller,
