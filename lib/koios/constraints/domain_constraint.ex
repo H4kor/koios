@@ -30,7 +30,4 @@ defmodule Koios.DomainConstraint do
   defp compare([], []), do: true
   defp compare(_, []), do: false
   defp compare([], _), do: false
-
-
-
 end

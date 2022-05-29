@@ -1,8 +1,6 @@
 defmodule Koios.Crawler do
   use GenServer
   alias Koios.CrawlRequest
-  alias Koios.Queue
-  alias Koios.Set
 
   import Koios.Util.UrlUtil
 
@@ -13,19 +11,17 @@ defmodule Koios.Crawler do
 
   @impl true
   def init(config) do
-    {:ok, visited_pages} = Set.start_link([])
-    {:ok, open_tasks} = Set.start_link([])
-    {:ok, open_urls} = Queue.start_link([])
 
-    Queue.push(open_urls, %CrawlRequest{url: config.url})
+    open_urls = :queue.new
+    open_urls = :queue.in(%CrawlRequest{url: config.url}, open_urls)
 
     schedule_work()
 
     {:ok, %{
       max_tasks: config.max_tasks,
       caller: config.caller,
-      visited_pages: visited_pages,
-      open_tasks: open_tasks,
+      visited_pages: MapSet.new(),
+      open_tasks: MapSet.new(),
       open_urls: open_urls,
       crawler: self(),
       constraints: config.constraints,
@@ -43,17 +39,19 @@ defmodule Koios.Crawler do
     }
   ) do
     # create new tasks from open_urls
-    if Set.size(open_tasks) < max_tasks do
-      case Queue.pop(open_urls) do
-        req when is_struct(req, CrawlRequest) ->
+    if MapSet.size(open_tasks) < max_tasks do
+      case :queue.out(open_urls) do
+        {{:value, req}, rem_urls} ->
           new_task = Task.async(
             fn -> crawl_page(req, context) end
           )
-          Set.put(open_tasks, new_task.ref)
           schedule_work()
-          {:noreply, context}
-        nil ->
-          if Set.size(open_tasks) == 0 do
+          {:noreply, %{
+            context
+            | open_tasks: MapSet.put(open_tasks, new_task.ref), open_urls: rem_urls
+          }}
+        {:empty, _} ->
+          if MapSet.size(open_tasks) == 0 do
             # no more urls, no more tasks -> we are done
             send(caller, {:done})
             {:noreply, context, :hibernate}
@@ -73,30 +71,38 @@ defmodule Koios.Crawler do
 
   @impl true
   def handle_info({:DOWN, ref, _, _, _reason}, context = %{open_tasks: open_tasks}) do
-    Set.remove(open_tasks, ref)
     schedule_work()
-    {:noreply, context}
+    {:noreply, %{context | open_tasks: MapSet.delete(open_tasks, ref)}}
   end
 
   @impl true
   def handle_cast(
-    {:new_url, req = %CrawlRequest{url: url, depth: depth, source: source}},
+    {:new_url, %CrawlRequest{url: url, depth: depth, source: source}},
     context = %{
       visited_pages: visited_pages,
       open_urls: open_urls,
       constraints: constraints,
     }
   ) do
-    unless url == nil or Set.has?(visited_pages, url) do
-      Set.put(visited_pages, url)
+    unless url == nil or MapSet.member?(visited_pages, url) do
       new_req = %CrawlRequest{url: url, depth: depth, source: source}
       # TODO: add constraints
       if Enum.all?(Enum.map(constraints, &(check_constraint(&1, new_req)))) do
-        Queue.push(open_urls, new_req)
+        new_open_urls = :queue.in(new_req, open_urls)
         schedule_work()
+        {:noreply, %{
+          context
+          | visited_pages: MapSet.put(visited_pages, url), open_urls: new_open_urls
+        }}
+      else
+        {:noreply, %{
+          context
+          | visited_pages: MapSet.put(visited_pages, url)
+        }}
       end
+    else
+      {:noreply, context}
     end
-    {:noreply, context}
   end
 
   defp check_constraint({constraint, params}, req) do
