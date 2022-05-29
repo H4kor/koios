@@ -71,4 +71,10 @@ defmodule Koios.DomainConstraintTest do
     ) == :false
   end
 
+  test "relative url" do
+    assert Koios.DomainConstraint.valid?(
+      "example.com", %Koios.CrawlRequest{url: "/foo/bar"}
+    ) == :false
+  end
+
 end

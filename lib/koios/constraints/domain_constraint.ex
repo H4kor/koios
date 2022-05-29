@@ -11,11 +11,15 @@ defmodule Koios.DomainConstraint do
 
   def valid?(domain, request) when is_binary(request.url) do
     uri = URI.parse(request.url)
-    domain_parts = Enum.reverse(String.split(domain, "."))
-    uri_parts = Enum.reverse(String.split(uri.host, "."))
-    compare(uri_parts, domain_parts)
+    if uri.host != nil do
+      domain_parts = Enum.reverse(String.split(domain, "."))
+      uri_parts = Enum.reverse(String.split(uri.host, "."))
+      compare(uri_parts, domain_parts)
+    else
+      false
+    end
   end
-  def valid?(_, %{url: nil}), do: :false
+  def valid?(_, %{url: nil}), do: false
 
   # catch all subdomain with **
   defp compare(_, ["**" | _]), do: true
