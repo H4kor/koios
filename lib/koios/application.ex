@@ -11,7 +11,7 @@ defmodule Koios.Application do
       {Task.Supervisor, name: Koios.ScraperTaskSupervisor},
     ]
 
-    opts = [strategy: :one_for_one, name: Asteria.Supervisor]
+    opts = [strategy: :one_for_one, name: Koios.Supervisor]
     Supervisor.start_link(children, opts)
   end
 end
