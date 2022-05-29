@@ -9,12 +9,13 @@ defmodule Koios.DomainConstraint do
     Enum.any?(domains, &(Koios.DomainConstraint.valid?(&1, request)))
   end
 
-  def valid?(domain, request) do
+  def valid?(domain, request) when is_binary(request.url) do
     uri = URI.parse(request.url)
     domain_parts = Enum.reverse(String.split(domain, "."))
     uri_parts = Enum.reverse(String.split(uri.host, "."))
     compare(uri_parts, domain_parts)
   end
+  def valid?(_, %{url: nil}), do: :false
 
   # catch all subdomain with **
   defp compare(_, ["**" | _]), do: true

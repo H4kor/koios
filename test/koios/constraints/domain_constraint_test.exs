@@ -65,6 +65,10 @@ defmodule Koios.DomainConstraintTest do
     ) == :true
   end
 
-
+  test "nil url" do
+    assert Koios.DomainConstraint.valid?(
+      "example.com", %Koios.CrawlRequest{url: nil}
+    ) == :false
+  end
 
 end
