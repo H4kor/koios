@@ -3,6 +3,15 @@ defmodule Koios.Application do
 
   @impl true
   def start(_type, _args) do
-    Koios.Supervisor.start_link(name: Koios.Supervisor)
+    children = [
+      {Koios.RetrieverRegistry, name: Koios.RetrieverRegistry},
+      {DynamicSupervisor, name: Koios.RetrieverSupervisor, strategy: :one_for_one},
+      {Koios.Coordinator, name: Koios.Coordinator},
+      Koios.CrawlerSupervisor,
+      {Task.Supervisor, name: Koios.ScraperTaskSupervisor},
+    ]
+
+    opts = [strategy: :one_for_one, name: Asteria.Supervisor]
+    Supervisor.start_link(children, opts)
   end
 end
