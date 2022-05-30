@@ -1,5 +1,5 @@
 defmodule Koios.Crawler do
-  use GenServer
+  use GenServer, restart: :transient
   alias Koios.CrawlRequest
 
   import Koios.Util.UrlUtil
@@ -54,7 +54,7 @@ defmodule Koios.Crawler do
           if MapSet.size(open_tasks) == 0 do
             # no more urls, no more tasks -> we are done
             send(caller, {:done})
-            {:noreply, context, :hibernate}
+            {:stop, :normal, context}
           else
             {:noreply, context}
           end
