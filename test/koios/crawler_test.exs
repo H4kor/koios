@@ -152,4 +152,40 @@ defmodule CrawlerTest do
     assert_receive {:done}
   end
 
+  test "pages_crawled" do
+    Koios.MockHttpClient
+    |> expect(:get_page, fn _url ->
+        {:ok, "<html><body><a href=\"foo.html\">Hello</a>, world!</body></html>"}
+      end)
+    |> expect(:get_page, fn _url ->
+        {:ok, "<html><body>Next Page</html>"}
+      end)
+
+    {:ok, crawler} = Koios.Crawler.start_link(%Koios.CrawlerSpec{
+      url: "http://www.example.com", max_tasks: 1, caller: self()
+    })
+    assert_receive {:found, _, _}
+    assert_receive {:found, _, _}
+    assert Koios.Crawler.pages_crawled(crawler) == 2
+    assert_receive {:done}
+  end
+
+  test "queued_urls" do
+    Koios.MockHttpClient
+    |> expect(:get_page, fn _url ->
+        {:ok, "<html><body><a href=\"foo.html\">Hello</a>, world!</body></html>"}
+      end)
+    |> expect(:get_page, fn _url ->
+        {:ok, "<html><body>Next Page</html>"}
+      end)
+
+    {:ok, crawler} = Koios.Crawler.start_link(%Koios.CrawlerSpec{
+      url: "http://www.example.com", max_tasks: 1, caller: self()
+    })
+    assert_receive {:found, _, _}
+    assert_receive {:found, _, _}
+    assert Koios.Crawler.queued_urls(crawler) == 0
+    assert_receive {:done}
+  end
+
 end

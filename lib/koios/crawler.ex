@@ -9,6 +9,16 @@ defmodule Koios.Crawler do
     GenServer.start_link(__MODULE__, config, opts)
   end
 
+  @spec pages_crawled(pid) :: integer
+  def pages_crawled(crawler) do
+    GenServer.call(crawler, :pages_crawled)
+  end
+
+  @spec queued_urls(pid) :: integer
+  def queued_urls(crawler) do
+    GenServer.call(crawler, :queued_urls)
+  end
+
   @impl true
   def init(config) do
 
@@ -20,7 +30,7 @@ defmodule Koios.Crawler do
     {:ok, %{
       max_tasks: config.max_tasks,
       caller: config.caller,
-      visited_pages: MapSet.new(),
+      visited_pages: MapSet.new([config.url]),
       open_tasks: MapSet.new(),
       open_urls: open_urls,
       crawler: self(),
@@ -103,6 +113,16 @@ defmodule Koios.Crawler do
     else
       {:noreply, context}
     end
+  end
+
+  @impl true
+  def handle_call(:pages_crawled, _from, context = %{visited_pages: visited_pages}) do
+    {:reply, MapSet.size(visited_pages), context}
+  end
+
+  @impl true
+  def handle_call(:queued_urls, _from, context = %{open_urls: open_urls}) do
+    {:reply, :queue.len(open_urls), context}
   end
 
   defp check_constraint({constraint, params}, req) do

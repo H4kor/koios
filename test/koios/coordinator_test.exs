@@ -37,7 +37,7 @@ end
 
 
 defmodule Koios.CoordinatorTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
   doctest Koios.Coordinator
 
   setup do

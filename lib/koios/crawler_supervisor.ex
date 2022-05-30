@@ -11,8 +11,8 @@ defmodule Koios.CrawlerSupervisor do
     DynamicSupervisor.init(strategy: :one_for_one)
   end
 
-  def crawlers() do
-    DynamicSupervisor.which_children(Koios.CrawlerSupervisor)
+  def crawlers(supervisor) do
+    DynamicSupervisor.which_children(supervisor)
     |> Enum.map(&elem(&1, 1))
     |> Enum.filter(&(&1 != :restarting))
   end

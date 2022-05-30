@@ -79,6 +79,6 @@ defmodule Koios do
 
   @spec crawlers() :: [pid()]
   def crawlers() do
-    Koios.CrawlerSupervisor.crawlers()
+    Koios.CrawlerSupervisor.crawlers(Koios.CrawlerSupervisor)
   end
 end
