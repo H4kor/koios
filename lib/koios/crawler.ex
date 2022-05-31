@@ -9,14 +9,18 @@ defmodule Koios.Crawler do
     GenServer.start_link(__MODULE__, config, opts)
   end
 
-  @spec pages_crawled(pid) :: integer
-  def pages_crawled(crawler) do
-    GenServer.call(crawler, :pages_crawled)
-  end
-
-  @spec queued_urls(pid) :: integer
-  def queued_urls(crawler) do
-    GenServer.call(crawler, :queued_urls)
+  @spec statistics(pid) :: %{
+    crawled_pages: integer,
+    queued_urls: integer,
+    running_tasks: integer,
+    maximum_tasks: integer,
+    start_url: String.t(),
+    start_time: DateTime.t(),
+    request_last_minute: integer,
+    discarded_links: integer,
+  }
+  def statistics(crawler) do
+    GenServer.call(crawler, :statistics)
   end
 
   @impl true
@@ -26,7 +30,6 @@ defmodule Koios.Crawler do
     open_urls = :queue.in(%CrawlRequest{url: config.url}, open_urls)
 
     schedule_work()
-
     {:ok, %{
       max_tasks: config.max_tasks,
       caller: config.caller,
@@ -35,6 +38,10 @@ defmodule Koios.Crawler do
       open_urls: open_urls,
       crawler: self(),
       constraints: config.constraints,
+      start_url: config.url,
+      start_time: DateTime.utc_now(),
+      discarded_links: 0,
+      request_last_minute: [],
     }}
   end
 
@@ -80,9 +87,19 @@ defmodule Koios.Crawler do
   end
 
   @impl true
-  def handle_info({:DOWN, ref, _, _, _reason}, context = %{open_tasks: open_tasks}) do
+  def handle_info(
+    {:DOWN, ref, _, _, _reason},
+    context = %{open_tasks: open_tasks, request_last_minute: request_last_minute}
+  ) do
     schedule_work()
-    {:noreply, %{context | open_tasks: MapSet.delete(open_tasks, ref)}}
+    {:noreply, %{
+      context
+      | open_tasks: MapSet.delete(open_tasks, ref),
+      request_last_minute: Enum.filter(
+        [ DateTime.utc_now() | request_last_minute ],
+        &(DateTime.compare(&1 |> DateTime.add(60, :second), (DateTime.utc_now())) == :gt)
+      )
+    }}
   end
 
   @impl true
@@ -92,6 +109,7 @@ defmodule Koios.Crawler do
       visited_pages: visited_pages,
       open_urls: open_urls,
       constraints: constraints,
+      discarded_links: discarded_links,
     }
   ) do
     unless url == nil or MapSet.member?(visited_pages, url) do
@@ -107,7 +125,8 @@ defmodule Koios.Crawler do
       else
         {:noreply, %{
           context
-          | visited_pages: MapSet.put(visited_pages, url)
+          | visited_pages: MapSet.put(visited_pages, url),
+          discarded_links: discarded_links + 1
         }}
       end
     else
@@ -116,13 +135,17 @@ defmodule Koios.Crawler do
   end
 
   @impl true
-  def handle_call(:pages_crawled, _from, context = %{visited_pages: visited_pages}) do
-    {:reply, MapSet.size(visited_pages), context}
-  end
-
-  @impl true
-  def handle_call(:queued_urls, _from, context = %{open_urls: open_urls}) do
-    {:reply, :queue.len(open_urls), context}
+  def handle_call(:statistics, _from, context) do
+    {:reply, %{
+      crawled_pages: MapSet.size(context.visited_pages),
+      queued_urls: :queue.len(context.open_urls),
+      running_tasks: MapSet.size(context.open_tasks),
+      maximum_tasks: context.max_tasks,
+      start_url: context.start_url,
+      start_time: context.start_time,
+      request_last_minute: Enum.count(context.request_last_minute),
+      discarded_links: context.discarded_links,
+    }, context}
   end
 
   defp check_constraint({constraint, params}, req) do
