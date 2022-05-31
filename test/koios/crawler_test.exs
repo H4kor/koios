@@ -152,7 +152,7 @@ defmodule CrawlerTest do
     assert_receive {:done}
   end
 
-  test "pages_crawled" do
+  test "statistics crawled_pages" do
     Koios.MockHttpClient
     |> expect(:get_page, fn _url ->
         {:ok, "<html><body><a href=\"foo.html\">Hello</a>, world!</body></html>"}
@@ -166,11 +166,11 @@ defmodule CrawlerTest do
     })
     assert_receive {:found, _, _}
     assert_receive {:found, _, _}
-    assert Koios.Crawler.pages_crawled(crawler) == 2
+    assert Koios.Crawler.statistics(crawler).crawled_pages == 2
     assert_receive {:done}
   end
 
-  test "queued_urls" do
+  test "statistics request_last_minute" do
     Koios.MockHttpClient
     |> expect(:get_page, fn _url ->
         {:ok, "<html><body><a href=\"foo.html\">Hello</a>, world!</body></html>"}
@@ -184,8 +184,49 @@ defmodule CrawlerTest do
     })
     assert_receive {:found, _, _}
     assert_receive {:found, _, _}
-    assert Koios.Crawler.queued_urls(crawler) == 0
+    assert Koios.Crawler.statistics(crawler).request_last_minute > 0
     assert_receive {:done}
   end
+
+  test "statistics queued_urls" do
+    Koios.MockHttpClient
+    |> expect(:get_page, fn _url ->
+        {:ok, "<html><body><a href=\"foo.html\">Hello</a>, world!</body></html>"}
+      end)
+    |> expect(:get_page, fn _url ->
+        {:ok, "<html><body>Next Page</html>"}
+      end)
+
+    {:ok, crawler} = Koios.Crawler.start_link(%Koios.CrawlerSpec{
+      url: "http://www.example.com", max_tasks: 1, caller: self()
+    })
+    assert_receive {:found, _, _}
+    assert_receive {:found, _, _}
+    assert Koios.Crawler.statistics(crawler).queued_urls == 0
+    assert_receive {:done}
+  end
+
+  test "statistics keys" do
+    Koios.MockHttpClient
+    |> expect(:get_page, fn _url ->
+        {:ok, "<html><body>Next Page</html>"}
+      end)
+
+    {:ok, crawler} = Koios.Crawler.start_link(%Koios.CrawlerSpec{
+      url: "http://www.example.com", max_tasks: 1, caller: self()
+    })
+    assert Koios.Crawler.statistics(crawler) |> Map.has_key?(:crawled_pages)
+    assert Koios.Crawler.statistics(crawler) |> Map.has_key?(:queued_urls)
+    assert Koios.Crawler.statistics(crawler) |> Map.has_key?(:running_tasks)
+    assert Koios.Crawler.statistics(crawler) |> Map.has_key?(:maximum_tasks)
+    assert Koios.Crawler.statistics(crawler) |> Map.has_key?(:start_url)
+    assert Koios.Crawler.statistics(crawler) |> Map.has_key?(:start_time)
+    assert Koios.Crawler.statistics(crawler) |> Map.has_key?(:request_last_minute)
+    assert Koios.Crawler.statistics(crawler) |> Map.has_key?(:discarded_links)
+
+    assert_receive {:found, _, _}
+    assert_receive {:done}
+  end
+
 
 end
