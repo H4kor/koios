@@ -125,8 +125,7 @@ defmodule Koios.Crawler do
       else
         {:noreply, %{
           context
-          | visited_pages: MapSet.put(visited_pages, url),
-          discarded_links: discarded_links + 1
+          | discarded_links: discarded_links + 1
         }}
       end
     else
@@ -137,7 +136,7 @@ defmodule Koios.Crawler do
   @impl true
   def handle_call(:statistics, _from, context) do
     {:reply, %{
-      crawled_pages: MapSet.size(context.visited_pages),
+      crawled_pages: MapSet.size(context.visited_pages) - :queue.len(context.open_urls),
       queued_urls: :queue.len(context.open_urls),
       running_tasks: MapSet.size(context.open_tasks),
       maximum_tasks: context.max_tasks,
